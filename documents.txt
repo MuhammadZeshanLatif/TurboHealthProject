@@ -1,0 +1,19 @@
+1) firstly install package.json by commands
+  npm init
+  give some details and
+2) install nodemon 
+3) install express
+4)install cors
+
+//auth
+// const auth=(req,res,next)=>{
+//     if(req.query.password=='123'){
+//         next()
+//     }
+//     else{
+//         res.sendStatus(404);
+//     }
+// }
+//auth can use as server.get('/',auth,(req, res)
+
+//I define this

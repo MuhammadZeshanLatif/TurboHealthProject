@@ -24,8 +24,8 @@ exports.getData = async (req, res) => {
     const householdIncome = 60000;
 
     const browser = await puppeteer.launch({
-      // headless: false,
-      // defaultViewport: false
+      headless: false,
+      defaultViewport: false
     });
     const page = await browser.newPage();
 

@@ -1,4 +1,4 @@
-const puppeteer = requires('puppeteer');
+const puppeteer = require('puppeteer');
 
 exports.getCountry = async (req, res) => {
   const zipcode = req.body.zipCode;

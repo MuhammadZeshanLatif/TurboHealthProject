@@ -1,9 +1,39 @@
-const puppeteer = require('puppeteer');
+const puppeteer = requires('puppeteer');
+
+exports.getCountry = async (req, res) => {
+  const zipcode = req.body.zipCode;
+  const category = req.body.category; // Corrected typo
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: false, // Set to true for headless mode
+      defaultViewport: false
+    });
+
+    const page = await browser.newPage();
+
+    await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR');
+
+    const stateCountyList = await getCountyAndStates(page, zipcode);
+    res.send({ stateCountyList });
+    
+    await browser.close();
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred');
+  }
+};
+
+
+
 exports.getData = async (req, res) => {
   console.log(req.body.catigory)
   console.log(req.body.zipCode)
+  console.log(req.body.tindex)
   const zipcode = req.body.zipCode;
   const category = req.body.catigory;
+  const countryIndex = req.body.tindex;
+  console.log(countryIndex)
   console.log(typeof (zipcode))
   // Sending a modified response including parameter values
   try {
@@ -44,7 +74,7 @@ exports.getData = async (req, res) => {
       planTypeSelection = planTypes[1];
     }
     //I define this
-    const countySelection = stateCountyList.countyOptions[0];
+    const countySelection = stateCountyList.countyOptions[countryIndex];
     //range on site is: 1-10
     await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
 
@@ -116,6 +146,9 @@ exports.getData = async (req, res) => {
     res.status(500).send('An error occurred'); // Send a generic error message to the client
   }
 }
+
+
+
 async function selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection) {
 
   await page.type('#zipCode', applicant.zipcode);

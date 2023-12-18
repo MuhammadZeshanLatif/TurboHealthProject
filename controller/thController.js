@@ -31,6 +31,8 @@ exports.getData = async (req, res) => {
   console.log(categorySelection);
   console.log(zipcode);
   console.log(typeof (zipcode));
+  console.log(productTypeSelection)
+  console.log(coveredMembers)
 
   let browser;
   // Sending a modified response including parameter values

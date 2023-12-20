@@ -16,123 +16,25 @@ exports.getCountry = async (req, res) => {
 
     const stateCountyList = await getCountyAndStates(page, zipcode);
     res.send({ stateCountyList });
-    
+
     await browser.close();
   } catch (error) {
     console.error(error);
     res.status(500).send('An error occurred');
   }
 };
-exports.getData = async (req, res) => {
-  const zipcode = req.body.zipCode; //zipcode is convension but zipCode with Cap C is being used in quotit site elements
-  const categorySelection = req.body.category;
-  let productTypeSelection = req.body.productType;
-  let coveredMembers = req.body.coveredMembers;
-  console.log(categorySelection);
-  console.log(zipcode);
-  console.log(typeof (zipcode));
-  console.log(productTypeSelection)
-  console.log(coveredMembers)
-
-  let browser;
-  // Sending a modified response including parameter values
-  try {
-
-    const applicant = {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'johndoe@gmail.com',
-      phone: '1234567890',
-      streetAddress: '123 Main St',
-      city: 'Los Angeles',
-      state: 'CA',
-      zipcode: zipcode,
-      comments: 'This is a comment'
-    }
-
-    const membersInHouse = 5;
-    const householdIncome = 60000;
-
-    browser = await puppeteer.launch({
-      executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-      headless: false,
-      // defaultViewport: false
-    });
-    const page = await browser.newPage();
-
-    await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR', {timeout: 60000});
-
-    const stateCountyList = await getCountyAndStates(page, applicant.zipcode);
-
-    const planTypes = await getPlanType(page);
-    //I define this
-    var planTypeSelection;
-    if (categorySelection == "Individuals") {
-      planTypeSelection = planTypes[0];
-    } else if (categorySelection == "Medicare") {
-      planTypeSelection = planTypes[2];
-    } else {
-      planTypeSelection = planTypes[1];
-    }
-    //I define this
-    const countySelection = stateCountyList.countyOptions[0];
-    //range on site is: 1-10
-    await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
-
-    const productTypes = await getProductTypes(page);
-    console.log(productTypes);
-
-    for( const productType of productTypes){
-      if(productType.label == productTypeSelection){
-        productTypeSelection = productType;
-        break;
-      }
-    }
-
-    await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
-
-    // debugging line DONT ENABLE
-    // await page.goto('https://www.quotit.net/quotit/apps/epro/EproReportWBE/IndexWBE?bSubmitted=0&covTypeID=C&report=IFPReport3&infoEntryLayout=4&brokerID=322908&license_no=5B3WWR&wordOfTheDay=orgasm&owner=quotit&planTypeID=%25&zipCode=77494&doPlanFinder=0&selectedPeriodID=1%2f1%2f2024&countyID=9887&h_MemberId=%2c%2c%2c%2c&householdSize=5&insuranceTypeIDRadio=5&effectiveStartDateSM=%2c&effectiveEndDate=%2c&hsmpaymentOption=M&effectiveDate=1%2f1%2f2024&txtAct=Quotit+Corporation%2c+NPN%3a18818599&familyID=51832341&insuranceTypeID=5&familyIDHash=367548287&quoteType=F');
-
-    const results = await scrapePlanListingPage(page);
-    const link = results[0]['Link Details'];
-
-    // // debugging line DONT ENABLE
-    // const link = 'https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?familyID=51832341&carrierID=62174&planID=PUF-87226TX0100011&premium=822.51&license_no=5B3WWR&brokerID=322908&insuranceTypeID=5&currPremium=&cartId=-1&periodID=301&effectiveDate=1%2f1%2f2024&baseRateUnitId=0&numberOfDays=0&type=WBE&avlViewpointID=5&srcEpro=1';
-
-    const planDetails = await scrapePlanDetailPage(browser, link);
-    // await page.setContent(data);
-    // await page.emulateMediaType('screen');
-    // await page.pdf({
-    //     path: 'demo.pdf',
-    //     format: "A4",
-    //     printBackground: true
-    // });
-    // await browser.close();
-
-    await browser.close();
-    // res.send(`Hello world! Zipcode: ${zipcode}, Category: ${categorySelection}`);
-    res.send({ productTypes, stateCountyList, planDetails, results });
-    //res.send({ stateCountyList, planTypes, planTypeSelection });
-  } catch (error) {
-    console.error(error); // Log the error
-    res.status(500).send('An error occurred'); // Send a generic error message to the client
-  }
-  finally {
-    // browser.close();
-  }
-}
-
-
 // exports.getData = async (req, res) => {
-//   console.log(req.body.catigory)
-//   console.log(req.body.zipCode)
-//   console.log(req.body.tindex)
-//   const zipcode = req.body.zipCode;
-//   const category = req.body.catigory;
-//   const countryIndex = req.body.tindex;
-//   console.log(countryIndex)
-//   console.log(typeof (zipcode))
+//   const zipcode = req.body.zipCode; //zipcode is convension but zipCode with Cap C is being used in quotit site elements
+//   const categorySelection = req.body.category;
+//   let productTypeSelection = req.body.productType;
+//   let coveredMembers = req.body.coveredMembers;
+//   console.log(categorySelection);
+//   console.log(zipcode);
+//   console.log(typeof (zipcode));
+//   console.log(productTypeSelection)
+//   console.log(coveredMembers)
+
+//   let browser;
 //   // Sending a modified response including parameter values
 //   try {
 
@@ -151,68 +53,41 @@ exports.getData = async (req, res) => {
 //     const membersInHouse = 5;
 //     const householdIncome = 60000;
 
-//     const browser = await puppeteer.launch({
+//     browser = await puppeteer.launch({
+//       executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 //       headless: false,
-//       defaultViewport: false
+//       // defaultViewport: false
 //     });
 //     const page = await browser.newPage();
 
-//     await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR');
+//     await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR', {timeout: 60000});
 
 //     const stateCountyList = await getCountyAndStates(page, applicant.zipcode);
 
 //     const planTypes = await getPlanType(page);
 //     //I define this
 //     var planTypeSelection;
-//     if (category == "Individuals") {
+//     if (categorySelection == "Individuals") {
 //       planTypeSelection = planTypes[0];
-//     } else if (category == "Medicare") {
+//     } else if (categorySelection == "Medicare") {
 //       planTypeSelection = planTypes[2];
 //     } else {
 //       planTypeSelection = planTypes[1];
 //     }
 //     //I define this
-//     const countySelection = stateCountyList.countyOptions[countryIndex];
+//     const countySelection = stateCountyList.countyOptions[0];
 //     //range on site is: 1-10
 //     await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
 
 //     const productTypes = await getProductTypes(page);
-//     console.log(productTypes)
-//     const productTypeSelection = productTypes[1];
+//     console.log(productTypes);
 
-//     const coveredMembers = [
-//       {
-//         firstName: "ChildOne",
-//         relationship: "Self",
-//         gender: "M",
-//         dob: "01/01/2009",
-//         zipCode: zipcode,
-//         county: stateCountyList.countyOptions[1]
-//       },
-//       {
-//         firstName: "ChildTwo",
-//         relationship: "Spouse",
-//         gender: "F",
-//         dob: "01/01/2009",
-//         zipCode: zipcode
-//       },
-//       {
-//         firstName: "ChildThree",
-//         relationship: "Child",
-//         gender: "M",
-//         dob: "01/01/2012",
-//         tobaccoDate: "02/02/2021",
-//         zipCode: zipcode
-//       },
-//       {
-//         firstName: "ChildFour",
-//         relationship: "Child",
-//         gender: "M",
-//         dob: "01/01/2012",
-//         tobaccoDate: "02/02/2021",
-//         zipCode: zipcode
+//     for( const productType of productTypes){
+//       if(productType.label == productTypeSelection){
+//         productTypeSelection = productType;
+//         break;
 //       }
-//     ];
+//     }
 
 //     await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
 
@@ -236,14 +111,153 @@ exports.getData = async (req, res) => {
 //     // await browser.close();
 
 //     await browser.close();
-//     // res.send(`Hello world! Zipcode: ${zipcode}, Category: ${category}`);
+//     // res.send(`Hello world! Zipcode: ${zipcode}, Category: ${categorySelection}`);
 //     res.send({ productTypes, stateCountyList, planDetails, results });
 //     //res.send({ stateCountyList, planTypes, planTypeSelection });
 //   } catch (error) {
 //     console.error(error); // Log the error
 //     res.status(500).send('An error occurred'); // Send a generic error message to the client
 //   }
+//   finally {
+//     // browser.close();
+//   }
 // }
+
+
+exports.getData = async (req, res) => {
+  console.log(req.body)
+  const zipcode = req.body.zipCode;
+  const category = req.body.catigory;
+  const hasAmpersand = category.includes('&');
+  const modifiedCategory = hasAmpersand ? category.split('&')[0] : category;
+  const name = req.body.applicant_Name;
+  const countryIndex = +req.body.countryIndex;
+  const houseMember = +req.body.people;
+  const incom = +req.body.income;
+  const gender = +req.body.gender;
+  const DOB = req.body.applicant_DOB;
+  const dateObject = new Date(DOB);
+  const day = String(dateObject.getDate()).padStart(2, '0');
+  const month = String(dateObject.getMonth() + 1).padStart(2, '0'); 
+  const year = dateObject.getFullYear();
+  const formattedDOB = `${day}/${month}/${year}`;
+  console.log(formattedDOB);
+
+  const categ = category.split("&")[0]
+  // const countryIndex = req.body.tindex;
+  // console.log(countryIndex)
+  // console.log(typeof (zipcode))
+  // Sending a modified response including parameter values
+  try {
+
+    const applicant = {
+      firstName: name,
+      lastName: 'Doe',
+      email: 'johndoe@gmail.com',
+      phone: '1234567890',
+      streetAddress: '123 Main St',
+      city: 'Los Angeles',
+      state: 'CA',
+      zipcode: zipcode,
+      comments: 'This is a comment'
+    }
+
+    const membersInHouse = houseMember;
+    const householdIncome = incom;
+
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: false
+    });
+    const page = await browser.newPage();
+
+    await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR');
+
+    const stateCountyList = await getCountyAndStates(page, applicant.zipcode);
+
+    const planTypes = await getPlanType(page);
+    //I define this
+    var planTypeSelection;
+    if (modifiedCategory == "Individuals") {
+      planTypeSelection = planTypes[0];
+    } else if (modifiedCategory == "Medicare") {
+      planTypeSelection = planTypes[2];
+    } else {
+      planTypeSelection = planTypes[1];
+    }
+    //I define this
+    const countySelection = stateCountyList.countyOptions[countryIndex];
+    //range on site is: 1-10
+    await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
+
+    const productTypes = await getProductTypes(page);
+    console.log(productTypes)
+    const productTypeSelection = productTypes[1];
+
+    const coveredMembers = [
+      {
+        firstName: name,
+        relationship: "Self",
+        gender: gender,
+        dob: "01/01/2009",
+        zipCode: zipcode,
+        county: stateCountyList.countyOptions[countryIndex]
+      },
+      {
+        firstName: "ChildTwo",
+        relationship: "Spouse",
+        gender: "F",
+        dob: "01/01/2009",
+        zipCode: zipcode
+      },
+      {
+        firstName: "ChildThree",
+        relationship: "Child",
+        gender: "M",
+        dob: "01/01/2012",
+        tobaccoDate: "02/02/2021",
+        zipCode: zipcode
+      },
+      {
+        firstName: "ChildFour",
+        relationship: "Child",
+        gender: "M",
+        dob: "01/01/2012",
+        tobaccoDate: "02/02/2021",
+        zipCode: zipcode
+      }
+    ];
+
+    await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
+
+    // debugging line DONT ENABLE
+    // await page.goto('https://www.quotit.net/quotit/apps/epro/EproReportWBE/IndexWBE?bSubmitted=0&covTypeID=C&report=IFPReport3&infoEntryLayout=4&brokerID=322908&license_no=5B3WWR&wordOfTheDay=orgasm&owner=quotit&planTypeID=%25&zipCode=77494&doPlanFinder=0&selectedPeriodID=1%2f1%2f2024&countyID=9887&h_MemberId=%2c%2c%2c%2c&householdSize=5&insuranceTypeIDRadio=5&effectiveStartDateSM=%2c&effectiveEndDate=%2c&hsmpaymentOption=M&effectiveDate=1%2f1%2f2024&txtAct=Quotit+Corporation%2c+NPN%3a18818599&familyID=51832341&insuranceTypeID=5&familyIDHash=367548287&quoteType=F');
+
+    const results = await scrapePlanListingPage(page);
+    const link = results[0]['Link Details'];
+
+    // // debugging line DONT ENABLE
+    // const link = 'https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?familyID=51832341&carrierID=62174&planID=PUF-87226TX0100011&premium=822.51&license_no=5B3WWR&brokerID=322908&insuranceTypeID=5&currPremium=&cartId=-1&periodID=301&effectiveDate=1%2f1%2f2024&baseRateUnitId=0&numberOfDays=0&type=WBE&avlViewpointID=5&srcEpro=1';
+
+    const planDetails = await scrapePlanDetailPage(browser, link);
+    // await page.setContent(data);
+    // await page.emulateMediaType('screen');
+    // await page.pdf({
+    //     path: 'demo.pdf',
+    //     format: "A4",
+    //     printBackground: true
+    // });
+    // await browser.close();
+
+    await browser.close();
+    // res.send(`Hello world! Zipcode: ${zipcode}, Category: ${category}`);
+    res.send({ productTypes, stateCountyList, planDetails, results });
+    //res.send({ stateCountyList, planTypes, planTypeSelection });
+  } catch (error) {
+    console.error(error); // Log the error
+    res.status(500).send('An error occurred'); // Send a generic error message to the client
+  }
+}
 
 
 

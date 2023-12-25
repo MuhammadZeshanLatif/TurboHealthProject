@@ -1,4 +1,11 @@
 const puppeteer = require('puppeteer');
+exports.getPlansList = async (req, res) => {
+  const url = req.body.url;
+  const pageNo = req.body.pageNo;
+}
+exports.getPlanDetails = async (req, res) => {
+
+}
 
 exports.getCountry = async (req, res) => {
   const zipcode = req.body.zipCode;
@@ -59,7 +66,7 @@ exports.getData = async (req, res) => {
     });
     const page = await browser.newPage();
 
-    await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR', {timeout: 60000});
+    await page.goto('https://www.quotit.net/eproIFP/webPages/infoEntry/InfoEntryZip.asp?license_no=5B3WWR', { timeout: 60000 });
 
     const stateCountyList = await getCountyAndStates(page, applicant.zipcode);
 
@@ -81,8 +88,8 @@ exports.getData = async (req, res) => {
     const productTypes = await getProductTypes(page);
     console.log(productTypes);
 
-    for( const productType of productTypes){
-      if(productType.label == productTypeSelection){
+    for (const productType of productTypes) {
+      if (productType.label == productTypeSelection) {
         productTypeSelection = productType;
         break;
       }

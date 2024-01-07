@@ -2,12 +2,27 @@ const puppeteer = require('puppeteer');
 exports.getPlansList = async (req, res) => {
   const url = req.body.url;
   const pageNo = req.body.pageNo;
+
+  const planDetails = await scrapePlanDetailPage(browser, url);
+
+  return planDetails;
+
 }
 exports.getPlanDetails = async (req, res) => {
+  const paramsString = req.url.split('?')[1];
+  const quotitUrl = `https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?${paramsString}`;
 
+  const browser = await puppeteer.launch({
+    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    headless: false, // Set to true for headless mode
+    defaultViewport: false
+  });
+
+  const planDetails = await scrapePlanDetailPage(browser, quotitUrl);
+  res.send(planDetails);
 }
 
-exports.getCountry = async (req, res) => {
+exports.getCountyList = async (req, res) => {
   const zipcode = req.body.zipCode;
   const category = req.body.category; // Corrected typo
 
@@ -41,20 +56,7 @@ exports.getData = async (req, res) => {
   console.log(coveredMembers)
 
   let browser;
-  // Sending a modified response including parameter values
   try {
-
-    // const applicant = {
-    //   firstName: 'John',
-    //   lastName: 'Doe',
-    //   email: 'johndoe@gmail.com',
-    //   phone: '1234567890',
-    //   streetAddress: '123 Main St',
-    //   city: 'Los Angeles',
-    //   state: 'CA',
-    //   zipcode: zipcode,
-    //   comments: 'This is a comment'
-    // }
 
     const membersInHouse = 5;
     const householdIncome = 60000;
@@ -145,7 +147,7 @@ exports.getData = async (req, res) => {
 //   const DOB = req.body.applicant_DOB;
 //   const dateObject = new Date(DOB);
 //   const day = String(dateObject.getDate()).padStart(2, '0');
-//   const month = String(dateObject.getMonth() + 1).padStart(2, '0'); 
+//   const month = String(dateObject.getMonth() + 1).padStart(2, '0');
 //   const year = dateObject.getFullYear();
 //   const formattedDOB = `${day}/${month}/${year}`;
 //   console.log(formattedDOB);
@@ -515,27 +517,43 @@ async function scrapePlanDetailPage(browser, link) {
 
   // await page.waitForNavigation();
 
-  // Extract data from the "Professional Services" table
-  const planDetailsData = await page.evaluate(() => {
-    const tables = document.querySelectorAll('table');
+  const headerDetails = await page.evaluate(()=> {
+    details = {};
+
+    tableElements = Array.from(document.querySelectorAll('.header-left table tbody tr'));
+    details.title = tableElements[1].textContent.trim();
+    details.imgUrl = 'https://www.quotit.net/'+document.querySelector('.header-left img').getAttribute('src');
+    elements = Array.from(document.querySelectorAll('span[class="labeler"]'));
+    elements.forEach((element) => {
+      splitStrings = element.textContent.trim().split(':');
+      details[splitStrings[0]] = splitStrings[1];
+    })
+
+
+    return details;
+  });
+
+  const benefitDetails = await page.evaluate(() => {
+    const benefitTablesDiv = document.querySelector('div[id="benefit_tables"]');
+    const tables = benefitTablesDiv.querySelectorAll('table');
 
     const data = {};
 
     tables.forEach((table) => {
       try {
         const tableDetails = {};
-        // const table = document.querySelector('table:has(th:contains("Professional Services"))');
         const rows = Array.from(table.querySelectorAll('tr'));
 
-        // Define an object to store the scraped data
-        // Extract data from the rows
         for (let i = 2; i < rows.length; i++) {
           const columns = rows[i].querySelectorAll('td');
           if (columns.length >= 3) {
             const serviceName = columns[0].textContent.trim();
             const tier1 = columns[1].textContent.trim();
             const network = columns[2].textContent.trim();
-            const limits = columns[3].textContent.trim();
+            let limits = columns[3].textContent.trim();
+            if(limits == 'Plan Brochure'){
+              limits = columns[3].querySelector('a').getAttribute('href');
+            }
             tableDetails[serviceName] = {
               tier1,
               network,
@@ -545,12 +563,10 @@ async function scrapePlanDetailPage(browser, link) {
         }
         data[rows[0].textContent.trim()] = tableDetails;
       } catch (e) {
-
       }
     });
     return data;
   });
-  return planDetailsData;
-  console.log(planDetailsData);
   page.close();
+  return {headerDetails, benefitDetails};
 }

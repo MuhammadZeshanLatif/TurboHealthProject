@@ -1,13 +1,29 @@
 const puppeteer = require('puppeteer');
 exports.getPlansList = async (req, res) => {
   const url = req.body.url;
-  const pageNo = req.body.pageNo;
+  const toPageNo = req.body.pageNo;
 
-  const planDetails = await scrapePlanDetailPage(browser, url);
+  const browser = await puppeteer.launch({
+    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    headless: false, // Set to true for headless mode
+    defaultViewport: false
+  });
 
-  return planDetails;
+  const page = await browser.newPage();
+  await page.goto(url);
+
+  pageDetails = await getToPageNo(page, toPageNo);
+
+  const plansList = await scrapePlanListingPage(page);
+
+  res.send({
+    plansList: plansList,
+    page: pageDetails
+  });
 
 }
+
+
 exports.getPlanDetails = async (req, res) => {
   const paramsString = req.url.split('?')[1];
   const quotitUrl = `https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?${paramsString}`;
@@ -474,24 +490,44 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
   await page.waitForNavigation();
 }
 
+async function getToPageNo(page, toPageNo){
+  try {
+    const pageIndicatorText = await page.$eval('.pageIndicator', (element) => element.textContent.trim());
+    console.log(pageIndicatorText);
+
+    splitString = pageIndicatorText.split(' ');
+    currentPage = parseInt(splitString[1]);
+    let totalPage = parseInt(splitString[3]);
+
+    while (currentPage < toPageNo){
+      await page.click('.next');
+      await page.waitForSelector('.pageIndicator');
+      currentPage++;
+    }
+    return {pageNo: currentPage, totalPage};
+
+  }catch (e){
+    console.log(e);
+  }
+}
 
 async function scrapePlanListingPage(page) {
   try {
     const results = await page.evaluate(() => {
       const results = [];
-      const plans = document.querySelectorAll(['div[class="plan-item"]']);
+      const plans = document.querySelectorAll(['div[class="plan-item scPlan-item"]']);
 
       console.log(plans.length);
 
       for (const plan of plans) {
 
-        const planDetailsLink = plan.querySelector('[class="link"]').querySelector('a').getAttribute('href');
+        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?'+plan.querySelector('[class="link"]').querySelector('a').getAttribute('href').split('?')[1];
 
         const planID = plan.querySelector('[class="p_planID"]')?.getAttribute('value');
-        const planName = plan.querySelector('div[class="plan-name"]').textContent.trim();
-        const planTierBadge = plan.querySelector('div[class="plan-tier-badge"]').textContent.trim();
-        const planTypeBadge = plan.querySelector('div[class="plan-type-badge"]').textContent.trim();
-        const premium = plan.querySelector('span[class="premium"]').textContent.trim();
+        const planName = plan.querySelector('div[class="scPlan-name"]')?.textContent.trim();
+        const planTierBadge = plan.querySelector('div[class="scPlan-tier-badge"]')?.textContent.trim();
+        const planTypeBadge = plan.querySelector('div[class="scPlan-type-badge"]')?.textContent.trim();
+        const premium = plan.querySelector('span[class="premium ahs-accent-coral"]')?.textContent.trim();
 
         const scrappedPlan = { 'Plan ID': planID, 'Plan Name': planName, 'Link Details': planDetailsLink, 'Plan Tier Badge': planTierBadge, 'Plan Type Badge': planTypeBadge, 'Premium': premium };
         const descriptionElements = plan.querySelectorAll('span[class="label Benefit-description"]');
@@ -514,8 +550,6 @@ async function scrapePlanListingPage(page) {
 async function scrapePlanDetailPage(browser, link) {
   const page = await browser.newPage();
   await page.goto(link);
-
-  // await page.waitForNavigation();
 
   const headerDetails = await page.evaluate(()=> {
     details = {};

@@ -63,13 +63,10 @@ exports.getCountyList = async (req, res) => {
 };
 exports.getData = async (req, res) => {
   console.log(req.body)
-  const applicant = req.body.coveredMembers[0]; //zipcode is convension but zipCode with Cap C is being used in quotit site elements
+  const applicant = req.body.coveredMembers[0];
   const categorySelection = req.body.category;
   let productTypeSelection = req.body.productType;
   let coveredMembers = req.body.coveredMembers;
-  console.log(categorySelection);
-  console.log(productTypeSelection)
-  console.log(coveredMembers)
 
   let browser;
   try {
@@ -89,7 +86,7 @@ exports.getData = async (req, res) => {
     const stateCountyList = await getCountyAndStates(page, applicant.zipcode);
 
     const planTypes = await getPlanType(page);
-    //I define this
+
     var planTypeSelection;
     if (categorySelection == "Individuals") {
       planTypeSelection = planTypes[0];
@@ -98,9 +95,9 @@ exports.getData = async (req, res) => {
     } else {
       planTypeSelection = planTypes[1];
     }
-    //I define this
+
     const countySelection = stateCountyList.countyOptions[0];
-    //range on site is: 1-10
+
     await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
 
     const productTypes = await getProductTypes(page);
@@ -115,12 +112,14 @@ exports.getData = async (req, res) => {
 
     await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
 
-    const results = await scrapePlanListingPage(page);
     const link = await page.url();
+    const results = await scrapePlanListingPage(page);
+
+    const pageDetails = await getToPageNo(page, 1);
 
     await browser.close();
 
-    res.send({ link, results });
+    res.send({ link, results, page: pageDetails });
 
   } catch (error) {
     console.error(error);
@@ -466,9 +465,9 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
             }
           }
 
-          const inputRelationship = document.querySelector('input[type="hidden"]');
+          const dropdown = document.querySelector('div[id="relationshipTypeID_1"]');
+          const inputRelationship = dropdown.querySelector('input[type="hidden"]');
           inputRelationship.value = val;
-          console.log('donee');
         }
 
         if (data.county) {
@@ -498,7 +497,6 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
   await iframe.waitForSelector(buttonSelector);
   await iframe.click(buttonSelector);
 
-  await page.waitForSelector('[class="plan-item scPlan-item"]');
 }
 
 async function getToPageNo(page, toPageNo){

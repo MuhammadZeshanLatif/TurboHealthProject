@@ -39,7 +39,7 @@ exports.getPlanDetails = async (req, res) => {
 }
 
 exports.getCountyList = async (req, res) => {
-  const zipcode = req.body.zipCode;
+  const zipcode = req.body.zipcode;
   const category = req.body.category; // Corrected typo
 
   try {
@@ -115,35 +115,19 @@ exports.getData = async (req, res) => {
 
     await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
 
-    // debugging line DONT ENABLE
-    // await page.goto('https://www.quotit.net/quotit/apps/epro/EproReportWBE/IndexWBE?bSubmitted=0&covTypeID=C&report=IFPReport3&infoEntryLayout=4&brokerID=322908&license_no=5B3WWR&wordOfTheDay=orgasm&owner=quotit&planTypeID=%25&zipCode=77494&doPlanFinder=0&selectedPeriodID=1%2f1%2f2024&countyID=9887&h_MemberId=%2c%2c%2c%2c&householdSize=5&insuranceTypeIDRadio=5&effectiveStartDateSM=%2c&effectiveEndDate=%2c&hsmpaymentOption=M&effectiveDate=1%2f1%2f2024&txtAct=Quotit+Corporation%2c+NPN%3a18818599&familyID=51832341&insuranceTypeID=5&familyIDHash=367548287&quoteType=F');
-
     const results = await scrapePlanListingPage(page);
-    const link = results[0]['Link Details'];
-
-    // // debugging line DONT ENABLE
-    // const link = 'https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?familyID=51832341&carrierID=62174&planID=PUF-87226TX0100011&premium=822.51&license_no=5B3WWR&brokerID=322908&insuranceTypeID=5&currPremium=&cartId=-1&periodID=301&effectiveDate=1%2f1%2f2024&baseRateUnitId=0&numberOfDays=0&type=WBE&avlViewpointID=5&srcEpro=1';
-
-    const planDetails = await scrapePlanDetailPage(browser, link);
-    // await page.setContent(data);
-    // await page.emulateMediaType('screen');
-    // await page.pdf({
-    //     path: 'demo.pdf',
-    //     format: "A4",
-    //     printBackground: true
-    // });
-    // await browser.close();
+    const link = await page.url();
 
     await browser.close();
-    // res.send(`Hello world! Zipcode: ${zipcode}, Category: ${categorySelection}`);
-    res.send({ productTypes, stateCountyList, planDetails, results });
-    //res.send({ stateCountyList, planTypes, planTypeSelection });
+
+    res.send({ link, results });
+
   } catch (error) {
-    console.error(error); // Log the error
-    res.status(500).send('An error occurred'); // Send a generic error message to the client
+    console.error(error);
+    res.status(500).send('An error occurred');
   }
   finally {
-    // browser.close();
+    browser.close();
   }
 }
 
@@ -297,12 +281,16 @@ async function selectZipCodeCountyAndPlan(page, applicant, countySelection, plan
 
   await page.waitForSelector('select[name="countyID"]');
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  await page.evaluate((countySelection) => {
-    const select = document.querySelector('select[name="countyID"]');
-    select.value = countySelection.value;
-  }, countySelection);
+  try{
+    await page.evaluate((countySelection) => {
+      const select = document.querySelector('select[name="countyID"]');
+      select.value = countySelection.value;
+    }, countySelection);
+  }catch (e){
+
+  }
 
   await page.click(`input[name="covTypeID"][value="${planTypeSelection.value}"]`);
 
@@ -458,7 +446,30 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
         dobInput.value = data.dob;
 
         const zipCodeInput = row.querySelector(`input[id="txtCensusZipCode-${index}"]`);
-        zipCodeInput.value = data.zipCode;
+        zipCodeInput.value = data.zipcode;
+
+        if(data.relationship){
+          // const ulNoShowElement = row.querySelector(`ul[class="noshow"]`);
+          // const li = row.querySelector(`ul[class="noshow"]`);
+          const allRelationships = Array.from(row.querySelectorAll('li')).map(li => {
+            return {
+              text: li.innerText.trim(),
+              value: li.getAttribute('data-val'),
+            };
+          });
+
+          let val ;
+          for (const r of allRelationships) {
+            if(r.text == data.relationship){
+              val = r.value;
+              break;
+            }
+          }
+
+          const inputRelationship = document.querySelector('input[type="hidden"]');
+          inputRelationship.value = val;
+          console.log('donee');
+        }
 
         if (data.county) {
           const countySelect = row.querySelector(`select[name="ApplicantCountySelect"]`);
@@ -487,7 +498,7 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
   await iframe.waitForSelector(buttonSelector);
   await iframe.click(buttonSelector);
 
-  await page.waitForNavigation();
+  await page.waitForSelector('[class="plan-item scPlan-item"]');
 }
 
 async function getToPageNo(page, toPageNo){
@@ -501,7 +512,7 @@ async function getToPageNo(page, toPageNo){
 
     while (currentPage < toPageNo){
       await page.click('.next');
-      await page.waitForSelector('.pageIndicator');
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       currentPage++;
     }
     return {pageNo: currentPage, totalPage};
@@ -513,6 +524,8 @@ async function getToPageNo(page, toPageNo){
 
 async function scrapePlanListingPage(page) {
   try {
+    await page.waitForSelector('div[class="plan-item scPlan-item"]');
+
     const results = await page.evaluate(() => {
       const results = [];
       const plans = document.querySelectorAll(['div[class="plan-item scPlan-item"]']);
@@ -551,7 +564,7 @@ async function scrapePlanDetailPage(browser, link) {
   const page = await browser.newPage();
   await page.goto(link);
 
-  const headerDetails = await page.evaluate(()=> {
+  const headerDetails = await page.evaluate( () => {
     details = {};
 
     tableElements = Array.from(document.querySelectorAll('.header-left table tbody tr'));

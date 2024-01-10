@@ -4,7 +4,7 @@ exports.getPlansList = async (req, res) => {
   const toPageNo = req.body.pageNo;
 
   const browser = await puppeteer.launch({
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     headless: false, // Set to true for headless mode
     defaultViewport: false
   });
@@ -29,7 +29,7 @@ exports.getPlanDetails = async (req, res) => {
   const quotitUrl = `https://www.quotit.net/quotit/apps/Common/BenefitDetails.aspx?${paramsString}`;
 
   const browser = await puppeteer.launch({
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     headless: false, // Set to true for headless mode
     defaultViewport: false
   });

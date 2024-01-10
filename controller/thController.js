@@ -14,7 +14,7 @@ exports.getPlansList = async (req, res) => {
 
   pageDetails = await getToPageNo(page, toPageNo);
 
-  const plansList = await scrapePlanListingPage(page);
+  const plansList = await scrapePlanListingPage(page, true);
 
   res.send({
     plansList: plansList,
@@ -113,7 +113,7 @@ exports.getData = async (req, res) => {
     await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
 
     const link = await page.url();
-    const results = await scrapePlanListingPage(page);
+    const results = await scrapePlanListingPage(page, categorySelection == "Individuals");
 
     const pageDetails = await getToPageNo(page, 1);
 
@@ -381,25 +381,33 @@ async function getToPageNo(page, toPageNo){
   }
 }
 
-async function scrapePlanListingPage(page) {
+async function scrapePlanListingPage(page, isIndividual) {
   try {
-    await page.waitForSelector('div[class="plan-item scPlan-item"]');
+    const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+    await page.waitForSelector(plansSelector);
 
-    const results = await page.evaluate(() => {
+    const results = await page.evaluate((isIndividual) => {
+      const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+
       const results = [];
-      const plans = document.querySelectorAll(['div[class="plan-item scPlan-item"]']);
+      const plans = document.querySelectorAll(plansSelector);
 
       console.log(plans.length);
 
       for (const plan of plans) {
 
-        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?'+plan.querySelector('[class="link"]').querySelector('a').getAttribute('href').split('?')[1];
+        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?'+plan.querySelector('[class="link"]')?.querySelector('a').getAttribute('href').split('?')[1];
+
+        const planNameSelector = isIndividual ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]' ;
+        const planTierBadgeSelector = isIndividual ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]' ;
+        const planTypeBadgeSelector = isIndividual ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
+        const premiumSelector = isIndividual ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
 
         const planID = plan.querySelector('[class="p_planID"]')?.getAttribute('value');
-        const planName = plan.querySelector('div[class="scPlan-name"]')?.textContent.trim();
-        const planTierBadge = plan.querySelector('div[class="scPlan-tier-badge"]')?.textContent.trim();
-        const planTypeBadge = plan.querySelector('div[class="scPlan-type-badge"]')?.textContent.trim();
-        const premium = plan.querySelector('span[class="premium ahs-accent-coral"]')?.textContent.trim();
+        const planName = plan.querySelector(planNameSelector)?.textContent.trim();
+        const planTierBadge = plan.querySelector(planTierBadgeSelector)?.textContent.trim();
+        const planTypeBadge = plan.querySelector(planTypeBadgeSelector)?.textContent.trim();
+        const premium = plan.querySelector(premiumSelector)?.textContent.trim();
 
         const scrappedPlan = { 'Plan ID': planID, 'Plan Name': planName, 'Link Details': planDetailsLink, 'Plan Tier Badge': planTierBadge, 'Plan Type Badge': planTypeBadge, 'Premium': premium };
         const descriptionElements = plan.querySelectorAll('span[class="label Benefit-description"]');
@@ -412,7 +420,7 @@ async function scrapePlanListingPage(page) {
         results.push(scrappedPlan);
       }
       return results;
-    });
+    }, isIndividual);
     return results;
   } catch (e) {
     console.log(e);

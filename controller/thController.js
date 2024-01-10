@@ -100,17 +100,17 @@ exports.getData = async (req, res) => {
 
     await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
 
-    const productTypes = await getProductTypes(page);
-    console.log(productTypes);
+    const productTypes = categorySelection != "Medicare" ? await getProductTypes(page) : [];
 
+    let productTypeSelectionElement;
     for (const productType of productTypes) {
       if (productType.label == productTypeSelection) {
-        productTypeSelection = productType;
+        productTypeSelectionElement = productType;
         break;
       }
     }
 
-    await setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome);
+    await setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome);
 
     const link = await page.url();
     const results = await scrapePlanListingPage(page, categorySelection == "Individuals");
@@ -267,20 +267,22 @@ async function getCountyAndStates(page, zipCode) {
   return { state, countyOptions };
 }
 
-async function setDependents(page, applicant, productTypeSelection, coveredMembers, membersInHouse, householdIncome) {
+async function setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome) {
   await page.waitForSelector('iframe');
 
   const iframeHandle = await page.$('iframe');
 
   const iframe = await iframeHandle.contentFrame();
 
-  await iframe.click(`input[type="radio"][value="${productTypeSelection.value}"]`);
+  if(productTypeSelectionElement){
+    await iframe.click(`input[type="radio"][value="${productTypeSelectionElement.value}"]`);
 
-  let dependentRows = 3;
+    let dependentRows = 3;
 
-  while (dependentRows < coveredMembers.length) {
-    await iframe.click('[id="btn_add_a_dependents"]');
-    dependentRows++;
+    while (dependentRows < coveredMembers.length) {
+      await iframe.click('[id="btn_add_a_dependents"]');
+      dependentRows++;
+    }
   }
 
   await iframe.evaluate((coveredMembers) => {
@@ -344,15 +346,17 @@ async function setDependents(page, applicant, productTypeSelection, coveredMembe
     }
   }, coveredMembers);
 
-  await iframe.evaluate((membersInHouse) => {
-    const householdNumberSelect = document.querySelector('select[id="SelhouseholdSize"]');
-    householdNumberSelect.value = membersInHouse;
-  }, membersInHouse);
+  if(productTypeSelectionElement){
+    await iframe.evaluate((membersInHouse) => {
+      const householdNumberSelect = document.querySelector('select[id="SelhouseholdSize"]');
+      householdNumberSelect.value = membersInHouse;
+    }, membersInHouse);
 
-  await iframe.evaluate((householdIncome) => {
-    const householdIncomeInput = document.querySelector('input[id="txtIncome"]');
-    householdIncomeInput.value = householdIncome;
-  }, householdIncome);
+    await iframe.evaluate((householdIncome) => {
+      const householdIncomeInput = document.querySelector('input[id="txtIncome"]');
+      householdIncomeInput.value = householdIncome;
+    }, householdIncome);
+  }
 
   const buttonSelector = 'a.btn.float-right';
   await iframe.waitForSelector(buttonSelector);

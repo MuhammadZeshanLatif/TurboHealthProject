@@ -112,14 +112,13 @@ exports.getData = async (req, res) => {
 
     await setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome);
 
-    const link = await page.url();
-    const results = await scrapePlanListingPage(page, categorySelection == "Individuals");
+    const {link, results} = await scrapePlanListingPage(page, categorySelection == "Individuals");
 
     const pageDetails = await getToPageNo(page, 1);
 
     await browser.close();
 
-    res.send({ link, results, page: pageDetails });
+    res.send({ link, plans: results, page: pageDetails });
 
   } catch (error) {
     console.error(error);
@@ -390,6 +389,8 @@ async function scrapePlanListingPage(page, isIndividual) {
     const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
     await page.waitForSelector(plansSelector);
 
+    const link = await page.url();
+
     const results = await page.evaluate((isIndividual) => {
       const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
 
@@ -425,7 +426,7 @@ async function scrapePlanListingPage(page, isIndividual) {
       }
       return results;
     }, isIndividual);
-    return results;
+    return {link, results};
   } catch (e) {
     console.log(e);
   }

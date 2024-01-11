@@ -1,1 +1,87 @@
-hi
+individual:
+
+http://localhost:3000/getData
+POST
+Payload
+{
+    "category": "Individuals",
+    "productType": "Health On-Exchange",
+    "coveredMembers": [
+      {
+        "firstName": "John",
+        "gender": "M",
+        "dob": "01/01/2002",
+        "zipcode": "77494"
+      },
+      {
+        "firstName": "Elizabeth",
+        "relationship": "Spouse",
+        "gender": "F",
+        "dob": "01/01/2009",
+        "zipcode": "77494"
+      }
+    ]
+
+}
+
+Response:
+
+{
+    "link": "https://www.quotit.net/Quotit/Apps/Epro/Webpages/infoEntry.asp?pageAction=GetQuote&license_no=5B3WWR&zipCode=77494&covTypeID=EF&insuranceTypeID=H&multipleCountiesExist=1&familyIDHash=",
+    "plans": [
+        {
+            "Plan ID": "PUF-87226TX0100011",
+            "Plan Name": "Standard Silver VALUE",
+            "Link Details": "https://turbohealth.us/getPlanDetails?familyID=52047233&carrierID=62174&planID=PUF-87226TX0100011&premium=660.90&license_no=5B3WWR&brokerID=322908&insuranceTypeID=5&currPremium=&cartId=-1&periodID=302&effectiveDate=2%2f1%2f2024&baseRateUnitId=0&numberOfDays=0&type=WBE&avlViewpointID=9&srcEpro=1",
+            "Plan Tier Badge": "Silver",
+            "Plan Type Badge": "HMO",
+            "Premium": "$340.90",
+            "Medical & Drug Deductible": "$700",
+            "Medical & Drug Out-of-Pocket Maximum": "$3,000",
+            "Primary Care Visit": "$20",
+            "Specialist Visit": "$40",
+            "Urgent Care": "$30",
+            "Inpatient Hospital": "30% after ded.",
+            "Generic Drugs": "$10",
+            "Preferred Brand Drugs": "$20"
+        },
+        {
+            "Plan ID": "PUF-87226TX0100007",
+            "Plan Name": "Clear VALUE Silver",
+            "Link Details": "https://turbohealth.us/getPlanDetails?familyID=52047233&carrierID=62174&planID=PUF-87226TX0100007&premium=664.07&license_no=5B3WWR&brokerID=322908&insuranceTypeID=5&currPremium=&cartId=-1&periodID=302&effectiveDate=2%2f1%2f2024&baseRateUnitId=0&numberOfDays=0&type=WBE&avlViewpointID=9&srcEpro=1",
+            "Plan Tier Badge": "Silver",
+            "Plan Type Badge": "HMO",
+            "Premium": "$344.07",
+            "Medical & Drug Deductible": "$1,600",
+            "Medical & Drug Out-of-Pocket Maximum": "$1,600",
+            "Primary Care Visit": "0% after ded.",
+            "Specialist Visit": "0% after ded.",
+            "Urgent Care": "0% after ded.",
+            "Inpatient Hospital": "0% after ded.",
+            "Generic Drugs": "0% after ded.",
+            "Preferred Brand Drugs": "0% after ded."
+        },
+    ],
+    "page": {
+        "pageNo": 1,
+        "totalPage": 10
+    }
+}
+
+in api response, there s a string "link", you have to store it in cookies/session
+
+if you want to get the any page, now you d hit a different api
+http://localhost:3000/getPlansList
+{
+    "url": "https://www.quotit.net/quotit/apps/epro/EproReportSCL01/IndexSCL01?bSubmitted=0&covTypeID=EF&report=IFPReport3&infoEntryLayout=4&brokerID=322908&license_no=5B3WWR&wordOfTheDay=weenie&owner=quotit&planTypeID=%25&zipCode=77494&doPlanFinder=0&selectedPeriodID=2%2f1%2f2024&countyID=9699&h_MemberId=%2c%2c%2c&insuranceTypeIDRadio=6&effectiveStartDateSM=%2c&effectiveEndDate=%2c&hsmpaymentOption=M&effectiveDate=2%2f1%2f2024&txtAct=Quotit+Corporation%2c+NPN%3a18818599&familyID=52037014&insuranceTypeID=6&familyIDHash=727325165",
+    "pageNo": 2
+}
+
+if user clicks on get details button,
+then open ur detail page url with query params from the "Plan Details" key in the plan object
+Example
+https://turbohealth.us/getPlanDetails?getPlanDetails?familyID=52036998&carrierID=72604&planID=40220TX0080032_1&premium=296.87&license_no=5B3WWR&brokerID=322908&insuranceTypeID=6&currPremium=&cartId=-1&periodID=302&effectiveDate=2%2f1%2f2024&paymentOption=&baseRateUnitId=1&numberOfDays=0&avlViewpointID=4&type=WBE&srcEpro=1
+would pass the query params after the "?" in the api request
+
+now in the next page, u ll hit the details api
+http://localhost:3000/getPlanDetails?familyID=52036998&carrierID=72604&planID=40220TX0080032_1&premium=296.87&license_no=5B3WWR&brokerID=322908&insuranceTypeID=6&currPremium=&cartId=-1&periodID=302&effectiveDate=2%2f1%2f2024&paymentOption=&baseRateUnitId=1&numberOfDays=0&avlViewpointID=4&type=WBE&srcEpro=1

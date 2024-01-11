@@ -14,10 +14,11 @@ exports.getPlansList = async (req, res) => {
 
   pageDetails = await getToPageNo(page, toPageNo);
 
-  const plansList = await scrapePlanListingPage(page, true);
+  const {link, results} = await scrapePlanListingPage(page, true);
 
   res.send({
-    plansList: plansList,
+    link,
+    plans: results,
     page: pageDetails
   });
 

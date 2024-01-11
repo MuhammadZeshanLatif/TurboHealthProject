@@ -12,9 +12,9 @@ exports.getPlansList = async (req, res) => {
   const page = await browser.newPage();
   await page.goto(url);
 
-  pageDetails = await getToPageNo(page, toPageNo);
-
   const {link, results} = await scrapePlanListingPage(page, true);
+
+  pageDetails = await getToPageNo(page, toPageNo, true);
 
   res.send({
     link,
@@ -328,7 +328,7 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
             }
           }
 
-          const dropdown = document.querySelector('div[id="relationshipTypeID_1"]');
+          const dropdown = row.querySelector('div[id*="relationshipTypeID_"]');
           const inputRelationship = dropdown.querySelector('input[type="hidden"]');
           inputRelationship.value = val;
         }

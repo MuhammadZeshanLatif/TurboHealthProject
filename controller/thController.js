@@ -12,7 +12,7 @@ exports.getPlansList = async (req, res) => {
   const page = await browser.newPage();
   await page.goto(url);
 
-  const {link, results} = await scrapePlanListingPage(page, true);
+  const { link, results } = await scrapePlanListingPage(page, true);
 
   pageDetails = await getToPageNo(page, toPageNo, true);
 
@@ -68,13 +68,11 @@ exports.getData = async (req, res) => {
   const categorySelection = req.body.category;
   let productTypeSelection = req.body.productType;
   let coveredMembers = req.body.coveredMembers;
+  const membersInHouse = req.body.membersInHouse;
+  const householdIncome = req.body.householdIncome;
 
   let browser;
   try {
-
-    const membersInHouse = 5;
-    const householdIncome = 60000;
-
     browser = await puppeteer.launch({
       // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
       headless: false,
@@ -113,7 +111,7 @@ exports.getData = async (req, res) => {
 
     await setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome);
 
-    const {link, results} = await scrapePlanListingPage(page, categorySelection == "Individuals");
+    const { link, results } = await scrapePlanListingPage(page, categorySelection == "Individuals");
 
     const pageDetails = await getToPageNo(page, 1);
 
@@ -143,12 +141,12 @@ async function selectZipCodeCountyAndPlan(page, applicant, countySelection, plan
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  try{
+  try {
     await page.evaluate((countySelection) => {
       const select = document.querySelector('select[name="countyID"]');
       select.value = countySelection.value;
     }, countySelection);
-  }catch (e){
+  } catch (e) {
 
   }
 
@@ -274,7 +272,7 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
 
   const iframe = await iframeHandle.contentFrame();
 
-  if(productTypeSelectionElement){
+  if (productTypeSelectionElement) {
     await iframe.click(`input[type="radio"][value="${productTypeSelectionElement.value}"]`);
 
     let dependentRows = 3;
@@ -310,7 +308,7 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
         const zipCodeInput = row.querySelector(`input[id="txtCensusZipCode-${index}"]`);
         zipCodeInput.value = data.zipcode;
 
-        if(data.relationship){
+        if (data.relationship) {
           // const ulNoShowElement = row.querySelector(`ul[class="noshow"]`);
           // const li = row.querySelector(`ul[class="noshow"]`);
           const allRelationships = Array.from(row.querySelectorAll('li')).map(li => {
@@ -320,9 +318,9 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
             };
           });
 
-          let val ;
+          let val;
           for (const r of allRelationships) {
-            if(r.text == data.relationship){
+            if (r.text == data.relationship) {
               val = r.value;
               break;
             }
@@ -346,7 +344,7 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
     }
   }, coveredMembers);
 
-  if(productTypeSelectionElement){
+  if (productTypeSelectionElement) {
     await iframe.evaluate((membersInHouse) => {
       const householdNumberSelect = document.querySelector('select[id="SelhouseholdSize"]');
       householdNumberSelect.value = membersInHouse;
@@ -364,7 +362,7 @@ async function setCoveredMembers(page, applicant, productTypeSelectionElement, c
 
 }
 
-async function getToPageNo(page, toPageNo){
+async function getToPageNo(page, toPageNo) {
   try {
     const pageIndicatorText = await page.$eval('.pageIndicator', (element) => element.textContent.trim());
     console.log(pageIndicatorText);
@@ -373,14 +371,14 @@ async function getToPageNo(page, toPageNo){
     currentPage = parseInt(splitString[1]);
     let totalPage = parseInt(splitString[3]);
 
-    while (currentPage < toPageNo){
+    while (currentPage < toPageNo) {
       await page.click('.next');
       await new Promise((resolve) => setTimeout(resolve, 2000));
       currentPage++;
     }
-    return {pageNo: currentPage, totalPage};
+    return { pageNo: currentPage, totalPage };
 
-  }catch (e){
+  } catch (e) {
     console.log(e);
   }
 }
@@ -402,10 +400,10 @@ async function scrapePlanListingPage(page, isIndividual) {
 
       for (const plan of plans) {
 
-        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?'+plan.querySelector('[class="link"]')?.querySelector('a').getAttribute('href').split('?')[1];
+        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?' + plan.querySelector('[class="link"]')?.querySelector('a').getAttribute('href').split('?')[1];
 
-        const planNameSelector = isIndividual ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]' ;
-        const planTierBadgeSelector = isIndividual ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]' ;
+        const planNameSelector = isIndividual ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]';
+        const planTierBadgeSelector = isIndividual ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]';
         const planTypeBadgeSelector = isIndividual ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
         const premiumSelector = isIndividual ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
 
@@ -427,7 +425,7 @@ async function scrapePlanListingPage(page, isIndividual) {
       }
       return results;
     }, isIndividual);
-    return {link, results};
+    return { link, results };
   } catch (e) {
     console.log(e);
   }
@@ -437,12 +435,12 @@ async function scrapePlanDetailPage(browser, link) {
   const page = await browser.newPage();
   await page.goto(link);
 
-  const headerDetails = await page.evaluate( () => {
+  const headerDetails = await page.evaluate(() => {
     details = {};
 
     tableElements = Array.from(document.querySelectorAll('.header-left table tbody tr'));
     details.title = tableElements[1].textContent.trim();
-    details.imgUrl = 'https://www.quotit.net/'+document.querySelector('.header-left img').getAttribute('src');
+    details.imgUrl = 'https://www.quotit.net/' + document.querySelector('.header-left img').getAttribute('src');
     elements = Array.from(document.querySelectorAll('span[class="labeler"]'));
     elements.forEach((element) => {
       splitStrings = element.textContent.trim().split(':');
@@ -471,7 +469,7 @@ async function scrapePlanDetailPage(browser, link) {
             const tier1 = columns[1].textContent.trim();
             const network = columns[2].textContent.trim();
             let limits = columns[3].textContent.trim();
-            if(limits == 'Plan Brochure'){
+            if (limits == 'Plan Brochure') {
               limits = columns[3].querySelector('a').getAttribute('href');
             }
             tableDetails[serviceName] = {
@@ -488,5 +486,5 @@ async function scrapePlanDetailPage(browser, link) {
     return data;
   });
   page.close();
-  return {headerDetails, benefitDetails};
+  return { headerDetails, benefitDetails };
 }

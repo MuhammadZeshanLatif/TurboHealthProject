@@ -70,6 +70,7 @@ exports.getData = async (req, res) => {
   let coveredMembers = req.body.coveredMembers;
   const membersInHouse = req.body.membersInHouse;
   const householdIncome = req.body.householdIncome;
+  const countyIndex = req.body.countyIndex;
 
   let browser;
   try {
@@ -95,7 +96,7 @@ exports.getData = async (req, res) => {
       planTypeSelection = planTypes[1];
     }
 
-    const countySelection = stateCountyList.countyOptions[0];
+    const countySelection = stateCountyList.countyOptions[countyIndex];
 
     await selectZipCodeCountyAndPlan(page, applicant, countySelection, planTypeSelection);
 

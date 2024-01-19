@@ -16,6 +16,8 @@ exports.getPlansList = async (req, res) => {
 
   pageDetails = await getToPageNo(page, toPageNo, true);
 
+  await browser.close();
+
   res.send({
     link,
     plans: results,

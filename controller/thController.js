@@ -406,14 +406,16 @@ async function scrapePlanListingPage(page, isIndividual) {
         const planTierBadgeSelector = isIndividual ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]';
         const planTypeBadgeSelector = isIndividual ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
         const premiumSelector = isIndividual ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
+        const imageSelector = 'div.plan-logo > img';
 
         const planID = plan.querySelector('[class="p_planID"]')?.getAttribute('value');
         const planName = plan.querySelector(planNameSelector)?.textContent.trim();
         const planTierBadge = plan.querySelector(planTierBadgeSelector)?.textContent.trim();
         const planTypeBadge = plan.querySelector(planTypeBadgeSelector)?.textContent.trim();
         const premium = plan.querySelector(premiumSelector)?.textContent.trim();
+        const imageUrl = plan.querySelector(imageSelector)?.getAttribute('src');
 
-        const scrappedPlan = { 'Plan ID': planID, 'Plan Name': planName, 'Link Details': planDetailsLink, 'Plan Tier Badge': planTierBadge, 'Plan Type Badge': planTypeBadge, 'Premium': premium };
+        const scrappedPlan = { 'Plan ID': planID, 'Plan Name': planName, 'Image Link': imageUrl, 'Link Details': planDetailsLink, 'Plan Tier Badge': planTierBadge, 'Plan Type Badge': planTypeBadge, 'Premium': premium };
         const descriptionElements = plan.querySelectorAll('span[class="label Benefit-description"]');
         descriptionElements.forEach(descriptionElement => {
           const description = descriptionElement?.textContent.trim();

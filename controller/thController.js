@@ -388,7 +388,7 @@ async function scrapePlanListingPage(page) {
   try {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     try{
-      isType1 = await page.$$('div[class="plan-item"]');
+      isType1 = await page.$('div[class="plan-item"]');
     }catch (e){
     }
     const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';

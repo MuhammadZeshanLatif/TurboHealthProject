@@ -12,7 +12,7 @@ exports.getPlansList = async (req, res) => {
   const page = await browser.newPage();
   await page.goto(url);
 
-  const { link, results } = await scrapePlanListingPage(page, true);
+  const { link, results } = await scrapePlanListingPage(page);
 
   pageDetails = await getToPageNo(page, toPageNo, true);
 
@@ -112,7 +112,7 @@ exports.getData = async (req, res) => {
 
     await setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome);
 
-    const { link, results } = await scrapePlanListingPage(page, categorySelection == "Individuals");
+    const { link, results } = await scrapePlanListingPage(page);
 
     const pageDetails = await getToPageNo(page, 1);
 
@@ -384,15 +384,20 @@ async function getToPageNo(page, toPageNo) {
   }
 }
 
-async function scrapePlanListingPage(page, isIndividual) {
+async function scrapePlanListingPage(page) {
   try {
-    const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try{
+      isType1 = await page.$$('div[class="plan-item"]');
+    }catch (e){
+    }
+    const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
     await page.waitForSelector(plansSelector);
 
     const link = await page.url();
 
-    const results = await page.evaluate((isIndividual) => {
-      const plansSelector = isIndividual ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+    const results = await page.evaluate((isType1) => {
+      const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
 
       const results = [];
       const plans = document.querySelectorAll(plansSelector);
@@ -403,10 +408,10 @@ async function scrapePlanListingPage(page, isIndividual) {
 
         const planDetailsLink = 'https://turbohealth.us/getPlanDetails?' + plan.querySelector('[class="link"]')?.querySelector('a').getAttribute('href').split('?')[1];
 
-        const planNameSelector = isIndividual ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]';
-        const planTierBadgeSelector = isIndividual ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]';
-        const planTypeBadgeSelector = isIndividual ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
-        const premiumSelector = isIndividual ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
+        const planNameSelector = isType1 ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]';
+        const planTierBadgeSelector = isType1 ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]';
+        const planTypeBadgeSelector = isType1 ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
+        const premiumSelector = isType1 ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
         const imageSelector = 'div.plan-logo > img';
 
         const planID = plan.querySelector('[class="p_planID"]')?.getAttribute('value');
@@ -427,7 +432,7 @@ async function scrapePlanListingPage(page, isIndividual) {
         results.push(scrappedPlan);
       }
       return results;
-    }, isIndividual);
+    }, isType1);
     return { link, results };
   } catch (e) {
     console.log(e);

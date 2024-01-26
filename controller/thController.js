@@ -16,8 +16,6 @@ exports.getPlansList = async (req, res) => {
 
   pageDetails = await getToPageNo(page, toPageNo, true);
 
-  await browser.close();
-
   res.send({
     link,
     plans: results,
@@ -58,7 +56,7 @@ exports.getCountyList = async (req, res) => {
     const stateCountyList = await getCountyAndStates(page, zipcode);
     res.send({ stateCountyList });
 
-    await browser.close();
+     await browser.close();
   } catch (error) {
     console.error(error);
     res.status(500).send('An error occurred');
@@ -118,7 +116,7 @@ exports.getData = async (req, res) => {
 
     const pageDetails = await getToPageNo(page, 1);
 
-    await browser.close();
+     await browser.close();
 
     res.send({ link, plans: results, page: pageDetails });
 
@@ -389,12 +387,14 @@ async function getToPageNo(page, toPageNo) {
 async function scrapePlanListingPage(page) {
   try {
     await new Promise((resolve) => setTimeout(resolve, 3000));
+    let isType1;
     try{
       isType1 = await page.$('div[class="plan-item"]');
     }catch (e){
     }
     const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
-    await page.waitForSelector(plansSelector);
+    // await page.waitForSelector(plansSelector);
+    await new Promise((resolve) => setTimeout(resolve, 6000));
 
     const link = await page.url();
 

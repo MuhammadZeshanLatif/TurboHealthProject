@@ -1,0 +1,93 @@
+curl --location 'http://localhost:3000/getPlansList' \
+--header 'Content-Type: application/json' \
+--data '{
+    "url": "https://www.quotit.net/quotit/apps/epro/EproReportSCL01/IndexSCL01?bSubmitted=0&covTypeID=EF&report=IFPReport3&infoEntryLayout=4&brokerID=322908&license_no=5B3WWR&wordOfTheDay=weenie&owner=quotit&planTypeID=%25&zipCode=77494&doPlanFinder=0&selectedPeriodID=2%2f1%2f2024&countyID=9699&h_MemberId=%2c%2c%2c&insuranceTypeIDRadio=6&effectiveStartDateSM=%2c&effectiveEndDate=%2c&hsmpaymentOption=M&effectiveDate=2%2f1%2f2024&txtAct=Quotit+Corporation%2c+NPN%3a18818599&familyID=52037014&insuranceTypeID=6&familyIDHash=727325165",
+    "filterData": {
+        "metalTiers": [
+            {
+            "id": "metalTier2"
+            },
+            {
+            "id": "metalTier3"
+            },
+            {
+            "id": "metalTier4"
+            },
+            {
+            "id": "metalTier5"
+            }
+        ],
+        "deductableRanges": [
+            {
+            "id": "deductible0"
+            },
+            {
+            "id": "deductible1000"
+            },
+            {
+            "id": "deductible3500"
+            },
+            {
+            "id": "deductible5000"
+            },
+            {
+            "id": "deductible15000"
+            },
+            {
+            "id": "deductible999999"
+            }
+        ],
+        "planTypes": [
+            {
+            "id": "plantypeHMO"
+            },
+            {
+            "id": "plantypeEPO"
+            },
+            {
+            "id": "plantypePOS"
+            }
+        ],
+        "premiumRanges": [
+            {
+            "id": "price100"
+            },
+            {
+            "id": "price250"
+            },
+            {
+            "id": "price500"
+            },
+            {
+            "id": "price750"
+            },
+            {
+            "id": "price999999"
+            }
+        ],
+        "brands": [
+            {
+            "id": "carrier72604"
+            },
+            {
+            "id": "carrier60245"
+            },
+            {
+            "id": "carrier62027"
+            },
+            {
+            "id": "carrier64268"
+            },
+            {
+            "id": "carrier62173"
+            },
+            {
+            "id": "carrier72599"
+            },
+            {
+            "id": "carrier65012"
+            }
+        ]
+    },
+    "pageNo": 2
+}'

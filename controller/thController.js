@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 exports.getPlansList = async (req, res) => {
   const url = req.body.url;
   const toPageNo = req.body.pageNo;
+  let filters = req.body.filterData;
 
   const browser = await puppeteer.launch({
     // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -12,12 +13,13 @@ exports.getPlansList = async (req, res) => {
   const page = await browser.newPage();
   await page.goto(url);
 
-  const { link, results } = await scrapePlanListingPage(page);
+  const { filterData, link, results } = await scrapePlanListingPage(page, filters);
 
   pageDetails = await getToPageNo(page, toPageNo, true);
 
   res.send({
     link,
+    filterData,
     plans: results,
     page: pageDetails
   });
@@ -112,13 +114,13 @@ exports.getData = async (req, res) => {
 
     await setCoveredMembers(page, applicant, productTypeSelectionElement, coveredMembers, membersInHouse, householdIncome);
 
-    const { link, results } = await scrapePlanListingPage(page);
+    const { filterData, link, results } = await scrapePlanListingPage(page);
 
     const pageDetails = await getToPageNo(page, 1);
 
      await browser.close();
 
-    res.send({ link, plans: results, page: pageDetails });
+    res.send({ filterData, link, plans: results, page: pageDetails });
 
   } catch (error) {
     console.error(error);
@@ -384,7 +386,7 @@ async function getToPageNo(page, toPageNo) {
   }
 }
 
-async function scrapePlanListingPage(page) {
+async function scrapePlanListingPage(page, filters) {
   try {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     let isType1;
@@ -398,13 +400,82 @@ async function scrapePlanListingPage(page) {
 
     const link = await page.url();
 
-    const results = await page.evaluate((isType1) => {
+    if(filters){
+      const keys = Object.keys(filters);
+      for(let key of keys){
+        for (let i = 0; i < filters[key].length; i++) {
+          const sectionFilter = await page.$('section[id="filter"]');
+          await (await sectionFilter.$(`[id="${filters[key][i].id}"]`)).click();
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+      }
+    }
+
+    const [filterData, results] = await page.evaluate((isType1) => {
       const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+
+      const sectionFilter = document.querySelector('section[id="filter"]');
 
       const results = [];
       const plans = document.querySelectorAll(plansSelector);
 
+      var filterData = {
+        metalTiers: [],
+        deductableRanges: [],
+        planTypes: [],
+        premiumRanges: [],
+        brands: []
+      };
+
+      const metalTierOptions = sectionFilter.querySelectorAll('[id*="metalTier"]');
+      metalTierOptions.forEach(function(option) {
+        filterData.metalTiers.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          priceRange: option.querySelector('.scPremiumRange strong').innerText.trim(),
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+
+      const deductableRange = sectionFilter.querySelectorAll('[id*="deductible"]');
+      deductableRange.forEach(function(option) {
+        filterData.deductableRanges.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+
+      const planTypeELements = sectionFilter.querySelectorAll('[id*="plantype"]');
+      planTypeELements.forEach(function(option) {
+        filterData.planTypes.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+      const premiumRangeElements = sectionFilter.querySelectorAll('[id*="price"]');
+      premiumRangeElements.forEach(function(option) {
+        filterData.premiumRanges.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+
+      const brandElements = sectionFilter.querySelectorAll('[id*="carrier"]');
+      brandElements.forEach(function(option) {
+        filterData.brands.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+
+      console.log('filter', filterData);
       console.log(plans.length);
+
+
 
       for (const plan of plans) {
 
@@ -431,11 +502,12 @@ async function scrapePlanListingPage(page) {
           const value = valueElement?.textContent.trim();
           scrappedPlan[description] = value;
         });
+
         results.push(scrappedPlan);
       }
-      return results;
+      return [filterData, results];
     }, isType1);
-    return { link, results };
+    return { filterData, link, results };
   } catch (e) {
     console.log(e);
   }

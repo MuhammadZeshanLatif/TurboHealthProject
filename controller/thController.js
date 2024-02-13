@@ -388,15 +388,14 @@ async function getToPageNo(page, toPageNo) {
 
 async function scrapePlanListingPage(page, filters) {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // await new Promise((resolve) => setTimeout(resolve, 6000));
     let isType1;
     try{
+      await page.waitForSelector('div[class="plan-item"]', {timeout: 20000});
       isType1 = await page.$('div[class="plan-item"]');
     }catch (e){
     }
-    const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
-    // await page.waitForSelector(plansSelector);
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    console.log('isType1:', isType1);
 
     const link = await page.url();
 
@@ -411,13 +410,9 @@ async function scrapePlanListingPage(page, filters) {
       }
     }
 
-    const [filterData, results] = await page.evaluate((isType1) => {
-      const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+    const filterData = await page.evaluate((isType1) => {
 
       const sectionFilter = document.querySelector('section[id="filter"]');
-
-      const results = [];
-      const plans = document.querySelectorAll(plansSelector);
 
       var filterData = {
         metalTiers: [],
@@ -473,9 +468,17 @@ async function scrapePlanListingPage(page, filters) {
       });
 
       console.log('filter', filterData);
-      console.log(plans.length);
 
+      return filterData;
+    }, isType1);
 
+    const results = await page.evaluate((isType1) => {
+      const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+
+      const results = [];
+      const plans = document.querySelectorAll(plansSelector);
+
+      console.log('Plans length:', plans.length);
 
       for (const plan of plans) {
 
@@ -505,8 +508,9 @@ async function scrapePlanListingPage(page, filters) {
 
         results.push(scrappedPlan);
       }
-      return [filterData, results];
+      return results;
     }, isType1);
+
     return { filterData, link, results };
   } catch (e) {
     console.log(e);

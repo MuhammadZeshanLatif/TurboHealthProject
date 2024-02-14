@@ -26,6 +26,32 @@ exports.getPlansList = async (req, res) => {
 
 }
 
+exports.getSortedPlans = async (req, res) => {
+  const url = req.body.url;
+  let sort = req.body.sort;
+
+  if(!sort){
+    sort = 'asc';
+  }
+
+  const browser = await puppeteer.launch({
+    // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    headless: false, // Set to true for headless mode
+    defaultViewport: false
+  });
+
+  const page = await browser.newPage();
+  await page.goto(url);
+
+  const { link, results } = await scrapePlanListingPageForLowestCost(page, null, sort);
+
+  res.send({
+    link,
+    plans: results,
+  });
+
+}
+
 
 exports.getPlanDetails = async (req, res) => {
   const paramsString = req.url.split('?')[1];
@@ -163,7 +189,6 @@ async function selectZipCodeCountyAndPlan(page, applicant, countySelection, plan
   await page.waitForNavigation();
 };
 
-
 async function getPlanType(page) {
   //search for labels and with values
   let options = await page.evaluate(() => {
@@ -217,6 +242,7 @@ async function getProductTypes(page) {
   });
   return productTypeOptions;
 }
+
 async function getCountyAndStates(page, zipCode) {
   let cookie = '';
   (await page.cookies()).forEach((c) => {
@@ -391,7 +417,7 @@ async function scrapePlanListingPage(page, filters) {
     // await new Promise((resolve) => setTimeout(resolve, 6000));
     let isType1;
     try{
-      await page.waitForSelector('div[class="plan-item"]', {timeout: 20000});
+      await page.waitForSelector('div[class="plan-item"]', {timeout: 16000});
       isType1 = await page.$('div[class="plan-item"]');
     }catch (e){
     }
@@ -409,6 +435,45 @@ async function scrapePlanListingPage(page, filters) {
         }
       }
     }
+
+    const results = await page.evaluate((isType1) => {
+      const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
+
+      const results = [];
+      const plans = document.querySelectorAll(plansSelector);
+
+      console.log('Plans length:', plans.length);
+
+      for (const plan of plans) {
+
+        const planDetailsLink = 'https://turbohealth.us/getPlanDetails?' + plan.querySelector('[class="link"]')?.querySelector('a').getAttribute('href').split('?')[1];
+
+        const planNameSelector = isType1 ? 'div[class="plan-name"]' : 'div[class="scPlan-name"]';
+        const planTierBadgeSelector = isType1 ? 'div[class="plan-tier-badge"]' : 'div[class="scPlan-tier-badge"]';
+        const planTypeBadgeSelector = isType1 ? 'div[class="plan-type-badge"]' : 'div[class="scPlan-type-badge"]';
+        const premiumSelector = isType1 ? 'span[class="premium"]' : 'span[class="premium ahs-accent-coral"]';
+        const imageSelector = 'div.plan-logo > img';
+
+        const planID = plan.querySelector('[class="p_planID"]')?.getAttribute('value');
+        const planName = plan.querySelector(planNameSelector)?.textContent.trim();
+        const planTierBadge = plan.querySelector(planTierBadgeSelector)?.textContent.trim();
+        const planTypeBadge = plan.querySelector(planTypeBadgeSelector)?.textContent.trim();
+        const premium = plan.querySelector(premiumSelector)?.textContent.trim();
+        const imageUrl = plan.querySelector(imageSelector)?.getAttribute('src');
+
+        const scrappedPlan = { 'Plan ID': planID, 'Plan Name': planName, 'Image Link': imageUrl, 'Link Details': planDetailsLink, 'Plan Tier Badge': planTierBadge, 'Plan Type Badge': planTypeBadge, 'Premium': premium };
+        const descriptionElements = plan.querySelectorAll('span[class="label Benefit-description"]');
+        descriptionElements.forEach(descriptionElement => {
+          const description = descriptionElement?.textContent.trim();
+          const valueElement = descriptionElement.nextElementSibling;
+          const value = valueElement?.textContent.trim();
+          scrappedPlan[description] = value;
+        });
+
+        results.push(scrappedPlan);
+      }
+      return results;
+    }, isType1);
 
     const filterData = await page.evaluate((isType1) => {
 
@@ -472,6 +537,66 @@ async function scrapePlanListingPage(page, filters) {
       return filterData;
     }, isType1);
 
+    return { filterData, link, results };
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+async function scrapePlanListingPageForLowestCost(page, filters, sort) {
+  try {
+    // await new Promise((resolve) => setTimeout(resolve, 6000));
+    let isType1;
+    try{
+      await page.waitForSelector('div[class="plan-item"]', {timeout: 16000});
+      isType1 = await page.$('div[class="plan-item"]');
+    }catch (e){
+    }
+    console.log('isType1:', isType1);
+
+    const link = await page.url();
+
+    const premiumRangeElements = await page.evaluate(() => {
+      const data = [];
+      const sectionFilter = document.querySelector('section[id="filter"]');
+      const premiumRangeElements = sectionFilter.querySelectorAll('[id*="price"]');
+      premiumRangeElements.forEach(function(option) {
+        data.push({
+          id: option.id,
+          label: option.innerText.trim().split('\n')[0],
+          active: option.getAttribute('class') === 'active' ? true: false
+        });
+      });
+      return data;
+    })
+
+    for (let i = 0; i < premiumRangeElements.length; i++) {
+      if(!premiumRangeElements[i].label.includes('(0)')){
+        const sectionFilter = await page.$('section[id="filter"]');
+        await (await sectionFilter.$(`[id="${premiumRangeElements[i].id}"]`)).click();
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        break;
+      }
+    }
+
+    const sortOptions = await page.$('div[class="sort-options"]');
+
+    const liElements = await sortOptions.$$('li', elements => Array.from(elements));
+
+    let costButton;
+    for (let i = 0; i < liElements.length; i++) {
+      const text = await page.evaluate(el => el.textContent, liElements[i]);
+      if(text?.trim() === 'Cost'){
+        costButton = liElements[i];
+        break;
+      }
+    }
+    await costButton.click();
+    if(sort==='desc'){
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await costButton.click();
+    }
+
     const results = await page.evaluate((isType1) => {
       const plansSelector = isType1 ? 'div[class="plan-item"]' : 'div[class="plan-item scPlan-item"]';
 
@@ -511,7 +636,7 @@ async function scrapePlanListingPage(page, filters) {
       return results;
     }, isType1);
 
-    return { filterData, link, results };
+    return { link, results };
   } catch (e) {
     console.log(e);
   }

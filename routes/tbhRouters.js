@@ -4,5 +4,6 @@ const tbhController=require('../controller/thController')
 routers.post('/getCountyList',tbhController.getCountyList);
 routers.post('/getData',tbhController.getData);
 routers.post('/getPlansList',tbhController.getPlansList);
+routers.post('/getSortedPlans',tbhController.getSortedPlans);
 routers.get('/getPlanDetails',tbhController.getPlanDetails);
 exports.routes=routers;
